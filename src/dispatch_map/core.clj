@@ -5,7 +5,8 @@
 (defrecord DispatchCache [hierarchy table])
 
 (defprotocol IDispatch
-  (prefer [this dispatch-val-x dispatch-val-y]))
+  (prefer [this dispatch-val-x dispatch-val-y])
+  (preferences [this]))
 
 (deftype DispatchMap [dispatch-fn default hierarchy m preferences cache]
 
@@ -62,6 +63,21 @@
     (.valAt this key))
   (invoke [this key not-found]
     (.valAt this key not-found))
+
+  IDispatch
+  (prefer [this dispatch-val-x dispatch-val-y]
+    (when (prefers? this dispatch-val-y dispatch-val-x)
+      (throw (Exception. (str "Preference conflict: " dispatch-val-y
+                              " is already preferred to " dispatch-val-x))))
+    (let [preferences* (update-in preferences [dispatch-val-x]
+                                  (fnil conj #{})
+                                  dispatch-val-y)]
+      (DispatchMap. dispatch-fn default hierarchy
+                    m preferences*
+                    (atom (empty-cache this)))))
+  (preferences [this]
+    preferences)
+
   )
 
 (defn- empty-cache [dm]
@@ -91,7 +107,7 @@
                             entry
                             best)]
                 (when-not (dominates? dm (key best*) (key entry))
-                  (throw (Exception.
+                  (throw (IllegalArgumentException.
                            (str "Multiple keys match: " dispatch-val
                                 " -> " (key entry) " and " (key best*)
                                 ", but neither is preferred"))))

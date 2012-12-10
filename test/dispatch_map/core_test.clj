@@ -17,7 +17,6 @@
 
 (deftest isa-dispatch-test
   (testing "dispatch on isa"
-    ;; Example from the multimethod docs.
     (derive java.util.Map ::collection)
     (derive java.util.Collection ::collection)
     (let [m (dispatch-map class ::collection :a-collection
@@ -25,3 +24,18 @@
       (is (= :a-collection (m [])))
       (is (= :a-collection (m (java.util.HashMap.))))
       (is (= :a-string (m "bar"))))))
+
+(deftest preferences-multimethod-test
+  (let [m (dispatch-map identity [::rect ::shape] :rect-shape
+                                 [::shape ::rect] :shape-rect)]
+    (testing "multiple match dispatch error is caught"
+      (derive ::rect ::shape)
+      (is (thrown? java.lang.IllegalArgumentException
+                   (m [::rect ::rect]))))
+    (testing "preferences function returns empty table w/ no prefs"
+      (= {} (preferences m)))
+    (let [m (prefer m [::rect ::shape] [::shape ::rect])]
+      (testing "Adding a preference to resolve it dispatches correctly"
+        (is (= :rect-shape (m [::rect ::rect]))))
+      (testing "prefers function now the correct table"
+        (is (= {[::rect ::shape] #{[::shape ::rect]}} (preferences m)))))))
