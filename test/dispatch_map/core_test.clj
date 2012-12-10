@@ -35,7 +35,7 @@
     (testing "preferences function returns empty table w/ no prefs"
       (= {} (preferences m)))
     (let [m (prefer m [::rect ::shape] [::shape ::rect])]
-      (testing "Adding a preference to resolve it dispatches correctly"
+      (testing "adding a preference to resolve it dispatches correctly"
         (is (= :rect-shape (m [::rect ::rect]))))
       (testing "prefers function now the correct table"
         (is (= {[::rect ::shape] #{[::shape ::rect]}} (preferences m)))))))

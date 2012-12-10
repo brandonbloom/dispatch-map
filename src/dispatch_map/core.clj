@@ -1,12 +1,12 @@
 (ns dispatch-map.core)
 
-(declare empty-cache reset-cache! update-map cache-best)
+(declare empty-cache reset-cache! update-map cache-best prefers?)
 
 (defrecord DispatchCache [hierarchy table])
 
 (defprotocol IDispatch
-  (prefer [this dispatch-val-x dispatch-val-y])
-  (preferences [this]))
+  (-prefer [this dispatch-val-x dispatch-val-y])
+  (-preferences [this]))
 
 (deftype DispatchMap [dispatch-fn default hierarchy m preferences cache]
 
@@ -65,7 +65,7 @@
     (.valAt this key not-found))
 
   IDispatch
-  (prefer [this dispatch-val-x dispatch-val-y]
+  (-prefer [this dispatch-val-x dispatch-val-y]
     (when (prefers? this dispatch-val-y dispatch-val-x)
       (throw (Exception. (str "Preference conflict: " dispatch-val-y
                               " is already preferred to " dispatch-val-x))))
@@ -75,7 +75,7 @@
       (DispatchMap. dispatch-fn default hierarchy
                     m preferences*
                     (atom (empty-cache this)))))
-  (preferences [this]
+  (-preferences [this]
     preferences)
 
   )
@@ -134,3 +134,15 @@
     (let [m (apply hash-map keyvals)]
       (DispatchMap. dispatch-fn default hierarchy
                     m {} (atom (DispatchCache. hierarchy {}))))))
+
+(defn prefer
+  "Causes the dispatch-map to prefer matches of dispatch-val-x over
+  dispatch-val-y when there is a conflict. Analogous to prefer-method."
+  [dispatch-map dispatch-val-x dispatch-val-y]
+  (-prefer dispatch-map dispatch-val-x dispatch-val-y))
+
+(defn preferences
+  "Given a dispatch-map, returns a map of preferred value -> set of
+  other values. Analogous to prefers for multimethods."
+  [dispatch-map]
+  (-preferences dispatch-map))
