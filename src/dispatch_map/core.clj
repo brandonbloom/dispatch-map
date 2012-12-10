@@ -13,12 +13,13 @@
   (containsKey [this k]
     (.containsKey m k))
   (entryAt [this k]
-    (let [c @cache]
+    (let [dispatch-val (dispatch-fn k)
+          c @cache]
       (when-not (= (.hierarchy c) @hierarchy)
         (reset-cache! this))
-      (or ((.table c) k)
-          (let [c (swap! cache #(cache-best this % k))]
-            ((.table c) k)))))
+      (or ((.table c) dispatch-val)
+          (let [c (swap! cache #(cache-best this % dispatch-val))]
+            ((.table c) dispatch-val)))))
 
   clojure.lang.ILookup
   (valAt [this k]
@@ -76,31 +77,33 @@
 
 (defn- prefers? [dm x y]
   (or (contains? ((.preferences dm) x) y)
-      (some #(prefers? x %) (parents y))
-      (some #(prefers? % y) (parents x))))
+      (some #(prefers? dm x %) (parents y))
+      (some #(prefers? dm % y) (parents x))))
 
 (defn- dominates? [dm x y]
   (or (prefers? dm x y) (isa? x y)))
 
-(defn- find-best [dm k]
+(defn- find-best [dm dispatch-val]
   (reduce (fn [best entry]
-            (if (isa? k (key entry))
+            (if (isa? dispatch-val (key entry))
               (let [best* (if (or (not best)
                                   (dominates? dm (key entry) (key best)))
                             entry
                             best)]
                 (when-not (dominates? dm (key best*) (key entry))
-                  (throw (Exception. (str "Multiple keys match: " k " -> "
-                                          (key entry) " and " (key best*)
-                                          ", but neither is preferred"))))
+                  (throw (Exception.
+                           (str "Multiple keys match: " dispatch-val
+                                " -> " (key entry) " and " (key best*)
+                                ", but neither is preferred"))))
                 best*)
               best))
           nil
           (.m dm)))
 
-(defn- cache-best [dm cache k]
-  (let [best (find-best dm k)
-        table (assoc (.table cache) k (or best (find (.m dm) (.default dm))))]
+(defn- cache-best [dm cache dispatch-val]
+  (let [best (find-best dm dispatch-val)
+        entry (or best (find (.m dm) (.default dm)))
+        table (assoc (.table cache) dispatch-val entry)]
     (DispatchCache. (.hierarchy cache) table)))
 
 ;;TODO: What to do about private var usages?
