@@ -8,8 +8,9 @@ A Clojure library which provides the internals of Clojure's multimethods as a pe
 (require '[dispatch-map.core :refer (dispatch-map)])
 
 (derive ::rect ::shape)
-(let [m (-> (dispatch-map identity [::rect ::shape] :rect-shape
-                                   [::shape ::rect] :shape-rect)
+(let [m (-> (dispatch-map identity
+              [::rect ::shape] :rect-shape
+              [::shape ::rect] :shape-rect)
             (prefer [::rect ::shape] [::shape ::rect]))]
   (println (m [::rect ::rect]))
   (println (m [::shape ::rect]))
