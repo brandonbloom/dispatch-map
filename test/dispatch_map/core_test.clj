@@ -2,6 +2,8 @@
   (:use clojure.test
         dispatch-map.core))
 
+;;; Ported multimethod tests
+
 (deftest basic-dispatch-test
   (let [m (dispatch-map identity :a 1 :b 2 :default 0)]
     (testing "basic dispatch"
@@ -39,3 +41,12 @@
         (is (= :rect-shape (m [::rect ::rect]))))
       (testing "prefers function now the correct table"
         (is (= {[::rect ::shape] #{[::shape ::rect]}} (preferences m)))))))
+
+;;; dispatch-map specific tests
+
+(deftest "map-isms"
+  (let [m (dispatch-map identity :a 1 :b 2)]
+    (testing "vals, keys, and entries"
+      (is (= [:a :b] (keys m)))
+      (is (= [1 2] (vals m)))
+      (is (= [[:a 1] [:b 2]] (seq m))))))
