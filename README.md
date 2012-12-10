@@ -16,6 +16,14 @@ A Clojure library which provides the internals of Clojure's multimethods as a pe
   (println (m [::rect ::circle] :not-found)))
 ```
 
+Prints:
+
+```
+:rect-shape
+:shape-rect
+:not-found
+```
+
 ## License
 
 Copyright © 2012 Brandon Bloom
