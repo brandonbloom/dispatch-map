@@ -2,6 +2,10 @@
 
 A Clojure library which provides the internals of Clojure's multimethods as a persistent, immutible map implementation.
 
+## Motivation
+
+See http://blog.brandonbloom.name/2012/12/clojures-multimethod-dispatch-as-library.html
+
 ## Example
 
 ```clojure
