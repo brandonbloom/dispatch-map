@@ -1,18 +1,20 @@
 (ns dispatch-map.core-test
-  (:use clojure.test
-        dispatch-map.core))
+  (:use [clojure.test]
+        [dispatch-map.core]))
 
 ;;; Ported multimethod tests
 
 (deftest basic-dispatch-test
-  (let [m (dispatch-map identity :a 1 :b 2 :default 0)]
+  (let [m (dispatch-map identity :a 1 :b 2)]
     (testing "basic dispatch"
       (is (= 1 (m :a)))
       (is (= 2 (m :b)))
-      (is (= 0 (m :c))))
+      (is (= 2 (m :b 0)))
+      (is (nil? (m :c)))
+      (is (= 0 (m :c 0))))
     (testing "dissoc"
       (let [m (dissoc m :a)]
-        (is (= 0 (m :a)))))
+        (is (nil? (m :a)))))
     (testing "assoc"
       (let [m (assoc m :c 3)]
         (is (= 3 (m :c)))))))
@@ -44,7 +46,7 @@
 
 ;;; dispatch-map specific tests
 
-(deftest "map-isms"
+(deftest map-isms
   (let [m (dispatch-map identity :a 1 :b 2)]
     (testing "vals, keys, and entries"
       (is (= [:a :b] (keys m)))

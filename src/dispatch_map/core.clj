@@ -8,7 +8,7 @@
   (-prefer [this dispatch-val-x dispatch-val-y])
   (-preferences [this]))
 
-(deftype DispatchMap [dispatch-fn default hierarchy m preferences cache]
+(deftype DispatchMap [dispatch-fn hierarchy m preferences cache]
 
   clojure.lang.Associative
   (containsKey [this k]
@@ -18,9 +18,11 @@
           c @cache]
       (when-not (= (.hierarchy c) @hierarchy)
         (reset-cache! this))
-      (or ((.table c) dispatch-val)
+      (let [entry (get (.table c) dispatch-val ::not-found)]
+        (if (= entry ::not-found)
           (let [c (swap! cache #(cache-best this % dispatch-val))]
-            ((.table c) dispatch-val)))))
+            (get (.table c) dispatch-val))
+          entry))))
 
   clojure.lang.ILookup
   (valAt [this k]
@@ -50,7 +52,7 @@
   (empty [this]
     (update-map this {}))
   (equiv [this o]
-    ;;TODO also compare dispatch-fn, default, hierarchy, and preferences?
+    ;;TODO also compare dispatch-fn, hierarchy, and preferences?
     (and (isa? (class o) DispatchMap)
          (.equiv m (.m o))))
 
@@ -72,7 +74,7 @@
     (let [preferences* (update-in preferences [dispatch-val-x]
                                   (fnil conj #{})
                                   dispatch-val-y)]
-      (DispatchMap. dispatch-fn default hierarchy
+      (DispatchMap. dispatch-fn hierarchy
                     m preferences*
                     (atom (empty-cache this)))))
   (-preferences [this]
@@ -87,7 +89,7 @@
   (reset! (.cache dm) (empty-cache dm)))
 
 (defn- update-map [dm m]
-  (DispatchMap. (.dispatch-fn dm) (.default dm) (.hierarchy dm)
+  (DispatchMap. (.dispatch-fn dm) (.hierarchy dm)
                 m (.preferences dm)
                 (atom (empty-cache dm))))
 
@@ -117,23 +119,21 @@
           (.m dm)))
 
 (defn- cache-best [dm cache dispatch-val]
-  (let [best (find-best dm dispatch-val)
-        entry (or best (find (.m dm) (.default dm)))
+  (let [entry (find-best dm dispatch-val)
         table (assoc (.table cache) dispatch-val entry)]
     (DispatchCache. (.hierarchy cache) table)))
 
 ;;TODO: What to do about private var usages?
 
 (defn dispatch-map
-  {:arglists '([dispatch-fn options? & keyvals])}
+  {:arglists '([dispatch-fn hierarchy? & keyvals])}
   [dispatch-fn & args]
-  (let [[options & keyvals] (if (even? (count args)) (cons {} args) args)
-        default (get options :default :default)
-        hierarchy (get options :hierarchy #'clojure.core/global-hierarchy)]
-    (#'clojure.core/check-valid-options options :default :hierarchy)
-    (let [m (apply hash-map keyvals)]
-      (DispatchMap. dispatch-fn default hierarchy
-                    m {} (atom (DispatchCache. hierarchy {}))))))
+  (let [[hierarchy & keyvals] (if (even? (count args))
+                                (cons #'clojure.core/global-hierarchy args)
+                                args)
+        m (apply hash-map keyvals)]
+    (DispatchMap. dispatch-fn hierarchy
+                  m {} (atom (DispatchCache. hierarchy {})))))
 
 (defn prefer
   "Causes the dispatch-map to prefer matches of dispatch-val-x over
