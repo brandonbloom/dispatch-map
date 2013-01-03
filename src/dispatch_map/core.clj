@@ -5,6 +5,9 @@
 (defrecord DispatchCache [hierarchy table])
 
 (defprotocol IDispatch
+  (-dispatch-fn [this])
+  (-hierarchy [this])
+  (-find-dispatched [this dispatch-val])
   (-prefer [this dispatch-val-x dispatch-val-y])
   (-preferences [this]))
 
@@ -14,15 +17,7 @@
   (containsKey [this k]
     (.containsKey m k))
   (entryAt [this k]
-    (let [dispatch-val (dispatch-fn k)
-          c @cache]
-      (when-not (= (.hierarchy c) @hierarchy)
-        (reset-cache! this))
-      (let [entry (get (.table c) dispatch-val ::not-found)]
-        (if (= entry ::not-found)
-          (let [c (swap! cache #(cache-best this % dispatch-val))]
-            (get (.table c) dispatch-val))
-          entry))))
+    (-find-dispatched this (dispatch-fn k)))
 
   clojure.lang.ILookup
   (valAt [this k]
@@ -67,6 +62,17 @@
     (.valAt this key not-found))
 
   IDispatch
+  (-dispatch-fn [this] dispatch-fn)
+  (-hierarchy [this] hierarchy)
+  (-find-dispatched [this dispatch-val]
+    (let [c @cache]
+      (when-not (= (.hierarchy c) @hierarchy)
+        (reset-cache! this))
+      (let [entry (get (.table c) dispatch-val ::not-found)]
+        (if (= entry ::not-found)
+          (let [c (swap! cache #(cache-best this % dispatch-val))]
+            (get (.table c) dispatch-val))
+          entry))))
   (-prefer [this dispatch-val-x dispatch-val-y]
     (when (prefers? this dispatch-val-y dispatch-val-x)
       (throw (Exception. (str "Preference conflict: " dispatch-val-y
@@ -134,6 +140,31 @@
         m (apply hash-map keyvals)]
     (DispatchMap. dispatch-fn hierarchy
                   m {} (atom (DispatchCache. hierarchy {})))))
+
+(defn hierarchy
+  "Gets the hierarchy used by a dispatch-map."
+  [dispatch-map]
+  (-hierarchy dispatch-map))
+
+(defn dispatch-fn
+  "Gets the dispatch function used by a dispatch-map."
+  [dispatch-map]
+  (-dispatch-fn dispatch-map))
+
+(defn find-dispatched
+  "Returns the map entry for a pre-dispatched key, nil if key not present."
+  [dispatch-map dispatch-val]
+  (-find-dispatched dispatch-map dispatch-val))
+
+(defn get-dispatched
+  "Returns the value mapped to a pre-dispatched key,
+  not-found or nil if key not present."
+  ([dispatch-map dispatch-val]
+   (get-dispatched dispatch-map dispatch-val nil))
+  ([dispatch-map dispatch-val not-found]
+   (if-let [entry (-find-dispatched dispatch-map dispatch-val)]
+     (val entry)
+     not-found)))
 
 (defn prefer
   "Causes the dispatch-map to prefer matches of dispatch-val-x over

@@ -55,3 +55,22 @@
       (is (= [:a :b] (keys m)))
       (is (= [1 2] (vals m)))
       (is (= [[:a 1] [:b 2]] (seq m))))))
+
+(def custom-hierarchy (make-hierarchy))
+
+(deftest getters
+  (let [m (dispatch-map name #'custom-hierarchy)]
+    (is (= (hierarchy m) #'custom-hierarchy))
+    (is (= (dispatch-fn m) name))))
+
+(deftest pre-dispatched
+  (let [m (dispatch-map inc 1 :a)]
+    (is (= (find-dispatched m 1) [1 :a]))
+    (is (= (find-dispatched m 2) nil))
+    (is (= (get-dispatched m 1) :a))
+    (is (= (get-dispatched m 1 :x) :a))
+    (is (= (get-dispatched m 2) nil))
+    (is (= (get-dispatched m 2 :x) :x))))
+
+;;TODO test pre-dispatched lookups
+;;TODO test alternative hierarchy
