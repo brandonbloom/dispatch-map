@@ -1,4 +1,4 @@
-(defproject dispatch-map "0.1.0-SNAPSHOT"
+(defproject dispatch-map "0.2.0-SNAPSHOT"
   :description "Persistent map with Clojure's multimethod dispatch semantics"
   :url "https://github.com/brandonbloom/dispatch-map/"
   :license {:name "Eclipse Public License"
