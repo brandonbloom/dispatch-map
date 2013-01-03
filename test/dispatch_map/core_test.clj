@@ -8,6 +8,9 @@
   (let [m (dispatch-map identity :a 1 :b 2)]
     (testing "basic dispatch"
       (is (= 1 (m :a)))
+      (is (= 1 (get m :a)))
+      (is (= 1 (:a m)))
+      (is (= [:a 1] (find m :a)))
       (is (= 2 (m :b)))
       (is (= 2 (m :b 0)))
       (is (nil? (m :c)))
