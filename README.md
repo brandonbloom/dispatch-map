@@ -35,7 +35,7 @@ Prints:
 
 ## IHierarchy Abstraction
 
-Java's type hierarchy gets special treatment in Clojure's native multimethods via the isa? function.
+Java's type hierarchy gets special treatment in Clojure's native multimethods via the `isa?` function.
 
 You can now get similarly special treatment by implementing the  `-isa` method on the `dispatch-map.hierarchy/IHierarchy` protocol.
 This is useful if you have a hiearchy defined by some other means that you don't wish to manually reproduce by successive calls to `derive`.
