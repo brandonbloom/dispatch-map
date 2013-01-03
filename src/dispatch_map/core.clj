@@ -1,4 +1,6 @@
-(ns dispatch-map.core)
+(ns dispatch-map.core
+  (:refer-clojure :exclude [isa?])
+  (:require [dispatch-map.hierarchy :refer (isa?)]))
 
 (declare empty-cache reset-cache! update-map cache-best prefers?)
 
@@ -48,7 +50,7 @@
     (update-map this {}))
   (equiv [this o]
     ;;TODO also compare dispatch-fn, hierarchy, and preferences?
-    (and (isa? (class o) DispatchMap)
+    (and (clojure.core/isa? (class o) DispatchMap)
          (.equiv m (.m o))))
 
   clojure.lang.Seqable
@@ -89,7 +91,7 @@
   )
 
 (defn- empty-cache [dm]
-  (DispatchCache. (.hierarchy dm) {}))
+  (DispatchCache. @(.hierarchy dm) {}))
 
 (defn- reset-cache! [dm]
   (reset! (.cache dm) (empty-cache dm)))
@@ -104,30 +106,32 @@
       (some #(prefers? dm x %) (parents y))
       (some #(prefers? dm % y) (parents x))))
 
-(defn- dominates? [dm x y]
-  (or (prefers? dm x y) (isa? x y)))
+(defn- dominates? [dm hierarchy x y]
+  (or (prefers? dm x y) (isa? hierarchy x y)))
 
-(defn- find-best [dm dispatch-val]
-  (reduce (fn [best entry]
-            (if (isa? dispatch-val (key entry))
-              (let [best* (if (or (not best)
-                                  (dominates? dm (key entry) (key best)))
-                            entry
-                            best)]
-                (when-not (dominates? dm (key best*) (key entry))
-                  (throw (IllegalArgumentException.
-                           (str "Multiple keys match: " dispatch-val
-                                " -> " (key entry) " and " (key best*)
-                                ", but neither is preferred"))))
-                best*)
-              best))
-          nil
-          (.m dm)))
+(defn- find-best [dm hierarchy dispatch-val]
+  (reduce
+    (fn [best entry]
+      (if (isa? hierarchy dispatch-val (key entry))
+        (let [best* (if (or (not best)
+                            (dominates? dm hierarchy (key entry) (key best)))
+                      entry
+                      best)]
+          (when-not (dominates? dm hierarchy (key best*) (key entry))
+            (throw (IllegalArgumentException.
+                     (str "Multiple keys match: " dispatch-val
+                          " -> " (key entry) " and " (key best*)
+                          ", but neither is preferred"))))
+          best*)
+        best))
+    nil
+    (.m dm)))
 
 (defn- cache-best [dm cache dispatch-val]
-  (let [entry (find-best dm dispatch-val)
+  (let [hierarchy (.hierarchy cache)
+        entry (find-best dm hierarchy dispatch-val)
         table (assoc (.table cache) dispatch-val entry)]
-    (DispatchCache. (.hierarchy cache) table)))
+    (DispatchCache. hierarchy table)))
 
 ;;TODO: What to do about private var usages?
 
@@ -139,7 +143,7 @@
                                 args)
         m (apply hash-map keyvals)]
     (DispatchMap. dispatch-fn hierarchy
-                  m {} (atom (DispatchCache. hierarchy {})))))
+                  m {} (atom (DispatchCache. @hierarchy {})))))
 
 (defn hierarchy
   "Gets the hierarchy used by a dispatch-map."

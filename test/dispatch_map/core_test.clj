@@ -1,6 +1,7 @@
 (ns dispatch-map.core-test
   (:use [clojure.test]
-        [dispatch-map.core]))
+        [dispatch-map.core])
+  (:require [dispatch-map.hierarchy :as hierarchy :refer (IHierarchy)]))
 
 ;;; Ported multimethod tests
 
@@ -56,11 +57,11 @@
       (is (= [1 2] (vals m)))
       (is (= [[:a 1] [:b 2]] (seq m))))))
 
-(def custom-hierarchy (make-hierarchy))
+(def alternate-hierarchy (make-hierarchy))
 
 (deftest getters
-  (let [m (dispatch-map name #'custom-hierarchy)]
-    (is (= (hierarchy m) #'custom-hierarchy))
+  (let [m (dispatch-map name #'alternate-hierarchy)]
+    (is (= (hierarchy m) #'alternate-hierarchy))
     (is (= (dispatch-fn m) name))))
 
 (deftest pre-dispatched
@@ -72,5 +73,14 @@
     (is (= (get-dispatched m 2) nil))
     (is (= (get-dispatched m 2 :x) :x))))
 
-;;TODO test pre-dispatched lookups
-;;TODO test alternative hierarchy
+(def custom-hierarchy
+  (reify IHierarchy
+    (-isa [_ child parent]
+      (or (= parent :root)
+          (= child :leaf)))))
+
+(deftest polymorphic-isa
+  (let [m (dispatch-map identity #'custom-hierarchy :root :root, :leaf :leaf)]
+    (is (= (m :root) :root))
+    (is (= (m :interior) :root))
+    (is (= (m :leaf) :leaf))))
