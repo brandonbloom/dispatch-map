@@ -106,8 +106,7 @@
     :default    the default dispatch value, defaults to :default
     :hierarchy  the isa? hierarchy to use for dispatching
                 defaults to the global hierarchy"
-  {:arglists '([name docstring? attr-map? dispatch-fn & options])
-   :added "1.0"}
+  {:arglists '([name docstring? attr-map? dispatch-fn & options])}
   [mm-name & options]
   (let [docstring   (if (string? (first options))
                       (first options)
@@ -143,7 +142,6 @@
 
 (defmacro defmethod
   "Creates and installs a new method of multimethod associated with dispatch-value. "
-  {:added "1.0"}
   [multifn dispatch-val & fn-tail]
   `(-add-method ~(with-meta multifn {:tag `DispatchMapFn}) ~dispatch-val (fn ~@fn-tail)))
 
