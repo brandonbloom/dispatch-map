@@ -15,6 +15,18 @@
 
 (deftype DispatchMap [dispatch-fn hierarchy m preferences cache]
 
+  Object
+  (hashCode [this]
+    (bit-xor (hash dispatch-fn)
+             (hash hierarchy)
+             (hash m)
+             (hash preferences)))
+  (equals [this obj]
+    (.equiv this obj))
+  (toString [this]
+    ;;TODO Something better here?
+    (str "#<DispatchMap " (pr-str m) ">"))
+
   clojure.lang.Associative
   (containsKey [this k]
     (.containsKey m k))
@@ -41,17 +53,21 @@
   (iterator [this]
     (.iterator m))
 
-  clojure.lang.IPersistentCollection
+  clojure.lang.Counted
   (count [this]
     (.count m))
+
+  clojure.lang.IPersistentCollection
   (cons [this o]
     (update-map this (.cons m o)))
   (empty [this]
     (update-map this {}))
   (equiv [this o]
-    ;;TODO also compare dispatch-fn, hierarchy, and preferences?
     (and (clojure.core/isa? (class o) DispatchMap)
-         (.equiv m (.m o))))
+         (= dispatch-fn (.dispatch-fn o))
+         (= hierarchy (.hierarchy o))
+         (= m (.m o))
+         (= preferences (.preferences o))))
 
   clojure.lang.Seqable
   (seq [this]
@@ -87,6 +103,28 @@
                     (atom (empty-cache this)))))
   (-preferences [this]
     preferences)
+
+  java.util.Map
+  (get [this k]
+    (.valAt this k))
+  (isEmpty [this]
+    (empty? this))
+  (size [this]
+    (count this))
+  (keySet [this]
+    (-> this keys set))
+  (put [_ _ _]
+    (throw (UnsupportedOperationException.)))
+  (putAll [_ _]
+    (throw (UnsupportedOperationException.)))
+  (clear [_]
+    (throw (UnsupportedOperationException.)))
+  (remove [_ _]
+    (throw (UnsupportedOperationException.)))
+  (values [this]
+    (vals this))
+  (entrySet [this]
+    (-> this seq set))
 
   )
 
@@ -132,8 +170,6 @@
         entry (find-best dm hierarchy dispatch-val)
         table (assoc (.table cache) dispatch-val entry)]
     (DispatchCache. hierarchy table)))
-
-;;TODO: What to do about private var usages?
 
 (defn dispatch-map
   {:arglists '([dispatch-fn hierarchy? & keyvals])}

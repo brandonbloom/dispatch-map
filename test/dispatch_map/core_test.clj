@@ -57,6 +57,27 @@
       (is (= [1 2] (vals m)))
       (is (= [[:a 1] [:b 2]] (seq m))))))
 
+(deftest equality
+  (let [phm (hash-map :a 1 :b 2)
+        dm (dispatch-map identity :a 1 :b 2)]
+    (testing "map entry equality"
+      (is (= dm dm))
+      (is (not= phm dm))
+      (is (not= dm phm))
+      (is (= dm (-> dm (assoc :c 3) (dissoc :c)))))
+    (testing "dispatch settings equality"
+      (is (= dm (dispatch-map identity :a 1 :b 2)))
+      (is (not= dm (dispatch-map class :a 1 :b 2)))
+      (is (not= dm (prefer dm :a :b))))
+    (testing "map entry hash"
+      (is (not= (hash dm) (hash phm)))
+      (is (= (hash dm) (-> dm (assoc :c 3) (dissoc :c) hash))))
+    (testing "dispatch setting hash"
+      (is (= (hash dm) (hash (dispatch-map identity :a 1 :b 2))))
+      (is (not= (hash dm) (dispatch-map class :a 1 :b 2)))
+      (is (not= (hash dm) (hash (prefer dm :a :b)))))
+    ))
+
 (def alternate-hierarchy (make-hierarchy))
 
 (deftest getters
