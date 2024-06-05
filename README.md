@@ -6,7 +6,7 @@ Also includes an implementation of the multimethod macros and functions in terms
 
 ## Motivation
 
-See http://blog.brandonbloom.name/2012/12/clojures-multimethod-dispatch-as-library.html
+See https://www.brandonbloom.name/blog/2012/12/10/clojures-multimethod-dispatch-as-library/
 
 
 ## Example
