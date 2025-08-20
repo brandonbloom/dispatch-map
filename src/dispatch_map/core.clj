@@ -2,6 +2,13 @@
   (:refer-clojure :exclude [isa?])
   (:require [dispatch-map.hierarchy :refer (isa?)]))
 
+(defn- deref-hierarchy
+  "Safely dereference hierarchy - handles both vars/atoms and plain values"
+  [hierarchy]
+  (if (instance? clojure.lang.IDeref hierarchy)
+    @hierarchy
+    hierarchy))
+
 (declare empty-cache reset-cache! update-map cache-best prefers?)
 
 (defrecord DispatchCache [hierarchy table])
@@ -84,7 +91,7 @@
   (-hierarchy [this] hierarchy)
   (-find-dispatched [this dispatch-val]
     (let [c @cache]
-      (when-not (= (.hierarchy c) @hierarchy)
+      (when-not (= (.hierarchy c) (deref-hierarchy hierarchy))
         (reset-cache! this))
       (let [entry (get (.table c) dispatch-val ::not-found)]
         (if (= entry ::not-found)
@@ -129,7 +136,7 @@
   )
 
 (defn- empty-cache [dm]
-  (DispatchCache. @(.hierarchy dm) {}))
+  (DispatchCache. (deref-hierarchy (.hierarchy dm)) {}))
 
 (defn- reset-cache! [dm]
   (reset! (.cache dm) (empty-cache dm)))
@@ -179,7 +186,7 @@
                                 args)
         m (apply hash-map keyvals)]
     (DispatchMap. dispatch-fn hierarchy
-                  m {} (atom (DispatchCache. @hierarchy {})))))
+                  m {} (atom (DispatchCache. (deref-hierarchy hierarchy) {})))))
 
 (defn hierarchy
   "Gets the hierarchy used by a dispatch-map."

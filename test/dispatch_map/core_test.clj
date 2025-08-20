@@ -105,3 +105,23 @@
     (is (= (m :root) :root))
     (is (= (m :interior) :root))
     (is (= (m :leaf) :leaf))))
+
+(deftest custom-hierarchy-test
+  (testing "dispatch-map works with custom hierarchy (not just vars)"
+    (let [custom-hierarchy (-> (make-hierarchy)
+                               (derive ::child ::parent)
+                               (derive ::parent ::grandparent))
+          dm (dispatch-map identity 
+                           custom-hierarchy
+                           ::child :child-value
+                           ::parent :parent-value
+                           ::grandparent :grandparent-value)]
+      (is (= :child-value (dm ::child)))
+      (is (= :parent-value (dm ::parent)))
+      (is (= :grandparent-value (dm ::grandparent)))
+      (is (= custom-hierarchy (hierarchy dm)))
+      
+      ; Test that hierarchy lookups work properly
+      (is (= :child-value (dm ::child)))
+      ; Child should match parent and grandparent due to hierarchy
+      (is (= :child-value (get-dispatched dm ::child))))))
